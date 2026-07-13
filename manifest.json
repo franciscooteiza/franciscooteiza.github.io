@@ -4,8 +4,8 @@
   "description": "Games for the two of you",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f9f0ef",
-  "theme_color": "#f9f0ef",
+  "background_color": "#1d1220",
+  "theme_color": "#1d1220",
   "orientation": "portrait",
   "icons": [
     {
