@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>¿Realmente somos extraños? · Are We Really Strangers?</title>
+<meta name="description" content="Un juego de cartas para parejas. Tres niveles para conocerse de verdad.">
+<style>
+  :root {
+    --bg: #f4efe8;
+    --ink: #1c1a17;
+    --card-bg: #fdfbf7;
+    --accent: #d94f30;
+    --accent-soft: #f3d9d1;
+    --muted: #8a8378;
+    --lvl1: #d94f30;
+    --lvl2: #2f6f5e;
+    --lvl3: #4a3f8f;
+    --wild: #b8860b;
+    --radius: 22px;
+    --shadow: 0 10px 30px rgba(28, 26, 23, .12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17150f;
+      --ink: #f0ebe2;
+      --card-bg: #221f18;
+      --accent: #ff6a45;
+      --accent-soft: #3a2620;
+      --muted: #9a927f;
+      --shadow: 0 10px 30px rgba(0, 0, 0, .5);
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100dvh;
+    padding: max(env(safe-area-inset-top), 16px) 16px max(env(safe-area-inset-bottom), 16px);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  header {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 4px 16px;
+  }
+  header h1 {
+    font-size: 15px;
+    font-weight: normal;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .lang-toggle {
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: .06em;
+    background: none;
+    border: 1px solid var(--muted);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+  main {
+    width: 100%;
+    max-width: 480px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 20px;
+  }
+  /* ---------- intro screen ---------- */
+  .screen { display: none; flex-direction: column; gap: 20px; }
+  .screen.active { display: flex; }
+  .intro-title {
+    font-size: clamp(34px, 9vw, 48px);
+    line-height: 1.08;
+    font-style: italic;
+  }
+  .intro-sub { font-size: 17px; line-height: 1.5; color: var(--muted); max-width: 40ch; }
+  .level-pick { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+  .level-btn {
+    font-family: inherit;
+    text-align: left;
+    background: var(--card-bg);
+    border: none;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--ink);
+    transition: transform .15s ease;
+  }
+  .level-btn:active { transform: scale(.98); }
+  .level-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+  .level-btn .lb-name { font-size: 19px; font-style: italic; }
+  .level-btn .lb-desc { font-size: 13.5px; color: var(--muted); margin-top: 3px; line-height: 1.35; }
+  .full-run {
+    margin-top: 4px;
+    font-family: inherit;
+    font-size: 16px;
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    border-radius: 999px;
+    padding: 16px 24px;
+    cursor: pointer;
+    letter-spacing: .02em;
+  }
+  /* ---------- game screen ---------- */
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 6px;
+  }
+  .progress-track {
+    height: 3px;
+    background: var(--accent-soft);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width .35s ease; }
+  .card-stage { perspective: 1200px; min-height: 380px; display: flex; }
+  .card {
+    flex: 1;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 28px 26px;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    animation: deal .4s ease;
+    border-top: 5px solid var(--accent);
+  }
+  @keyframes deal {
+    from { opacity: 0; transform: translateY(24px) rotate(-1.5deg); }
+    to   { opacity: 1; transform: translateY(0) rotate(0); }
+  }
+  .card.leaving { animation: fly .3s ease forwards; }
+  @keyframes fly {
+    to { opacity: 0; transform: translateX(-60px) rotate(-4deg); }
+  }
+  .card-tag { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .card-q {
+    font-size: clamp(24px, 6.4vw, 32px);
+    line-height: 1.3;
+    font-style: italic;
+    margin: 24px 0;
+  }
+  .card-hint { font-size: 13px; color: var(--muted); text-align: right; }
+  .game-controls { display: flex; gap: 10px; }
+  .game-controls button {
+    font-family: inherit;
+    font-size: 15px;
+    border-radius: 999px;
+    padding: 14px 0;
+    cursor: pointer;
+    border: 1px solid var(--muted);
+    background: none;
+    color: var(--ink);
+    flex: 1;
+  }
+  .game-controls .next-btn {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+    flex: 2;
+  }
+  /* ---------- end screen ---------- */
+  .end-title { font-size: clamp(30px, 8vw, 42px); font-style: italic; line-height: 1.15; }
+  .end-sub { font-size: 17px; line-height: 1.55; color: var(--muted); }
+  footer { padding-top: 18px; font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="brand">¿Realmente somos extraños?</h1>
+  <button class="lang-toggle" id="langBtn" aria-label="Cambiar idioma">EN</button>
+</header>
+
+<main>
+  <!-- intro -->
+  <section class="screen active" id="introScreen">
+    <div>
+      <div class="intro-title" id="introTitle"></div>
+      <p class="intro-sub" id="introSub" style="margin-top:14px"></p>
+    </div>
+    <div class="level-pick" id="levelPick"></div>
+    <button class="full-run" id="fullRunBtn"></button>
+  </section>
+
+  <!-- game -->
+  <section class="screen" id="gameScreen">
+    <div class="hud">
+      <span id="hudLevel"></span>
+      <span id="hudCount"></span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="card-stage">
+      <div class="card" id="card">
+        <div class="card-tag" id="cardTag"></div>
+        <div class="card-q" id="cardQ"></div>
+        <div class="card-hint" id="cardHint"></div>
+      </div>
+    </div>
+    <div class="game-controls">
+      <button id="quitBtn"></button>
+      <button class="next-btn" id="nextBtn"></button>
+    </div>
+  </section>
+
+  <!-- end -->
+  <section class="screen" id="endScreen">
+    <div class="end-title" id="endTitle"></div>
+    <p class="end-sub" id="endSub"></p>
+    <button class="full-run" id="againBtn"></button>
+  </section>
+</main>
+
+<footer id="footer"></footer>
+
+<script>
+'use strict';
+
+/* ------------------------------------------------------------------ */
+/* Deck — couples edition. 3 levels + wildcards.                       */
+/* Each card: { es, en }                                               */
+/* ------------------------------------------------------------------ */
+const DECK = {
+  1: [
+    { es: '¿Cuál fue tu primera impresión de mí, honestamente?', en: 'What was your honest first impression of me?' },
+    { es: '¿Qué crees que la gente malinterpreta de mí?', en: 'What do you think people misunderstand about me?' },
+    { es: '¿Qué canción crees que describe nuestra relación?', en: 'What song do you think describes our relationship?' },
+    { es: '¿En qué crees que soy mejor que tú? ¿Y tú mejor que yo?', en: 'What do you think I do better than you? And you better than me?' },
+    { es: '¿Qué hábito mío te pareció raro al principio y ahora te gusta?', en: 'Which habit of mine seemed odd at first but you like now?' },
+    { es: '¿Cómo crees que te describiría a mis amigos?', en: 'How do you think I describe you to my friends?' },
+    { es: '¿Qué crees que me quita el sueño últimamente?', en: 'What do you think keeps me up at night lately?' },
+    { es: '¿Cuál crees que es mi recuerdo favorito de nosotros?', en: 'What do you think is my favorite memory of us?' },
+    { es: '¿Qué parte de mi rutina diaria te parece un misterio?', en: 'What part of my daily routine is still a mystery to you?' },
+    { es: '¿Qué crees que admiro más de ti?', en: 'What do you think I admire most about you?' },
+    { es: 'Si tuvieras que apostar: ¿cuál es mi miedo más tonto?', en: 'If you had to bet: what is my silliest fear?' },
+    { es: '¿Qué plato crees que pediría siempre si solo pudiera comer uno?', en: 'What dish do you think I would order forever if I could only eat one?' },
+  ],
+  2: [
+    { es: '¿Cuándo te sentiste más orgulloso/a de mí?', en: 'When did you feel proudest of me?' },
+    { es: '¿Qué momento difícil superamos que nos hizo más fuertes?', en: 'What hard moment did we get through that made us stronger?' },
+    { es: '¿Qué es algo que nunca me has agradecido en voz alta?', en: 'What is something you have never thanked me for out loud?' },
+    { es: '¿En qué momento supiste que esto era en serio?', en: 'When did you know this was serious?' },
+    { es: '¿Qué te da miedo pedirme?', en: 'What are you afraid to ask me for?' },
+    { es: '¿Qué versión de mí te gusta más: la de lunes por la mañana o la de sábado por la noche? ¿Por qué?', en: 'Which version of me do you like more: Monday morning or Saturday night? Why?' },
+    { es: '¿Qué costumbre de tu familia quieres que tengamos nosotros?', en: 'Which tradition from your family do you want us to keep?' },
+    { es: '¿Cuándo fue la última vez que te hice sentir realmente visto/a?', en: 'When was the last time I made you feel truly seen?' },
+    { es: '¿Qué discusión nuestra te enseñó algo sobre ti?', en: 'Which argument of ours taught you something about yourself?' },
+    { es: '¿Qué necesitas más de mí cuando tienes un mal día?', en: 'What do you need most from me on a bad day?' },
+    { es: '¿Qué sueño tuyo sientes que aún no me has contado del todo?', en: 'What dream of yours do you feel you have not fully told me yet?' },
+    { es: '¿Qué te enamora de nosotros que no tiene nada que ver conmigo ni contigo, sino con lo que somos juntos?', en: 'What do you love about us that is not about me or you, but about what we are together?' },
+  ],
+  3: [
+    { es: '¿Qué te ha enseñado esta relación sobre el amor que no sabías antes?', en: 'What has this relationship taught you about love that you did not know before?' },
+    { es: '¿Qué herida tuya he ayudado a sanar? ¿Cuál sigue abierta?', en: 'Which wound of yours have I helped heal? Which one is still open?' },
+    { es: '¿En qué te has convertido desde que estamos juntos?', en: 'Who have you become since we have been together?' },
+    { es: '¿Qué te gustaría que nunca cambiara entre nosotros?', en: 'What do you hope never changes between us?' },
+    { es: '¿Qué conversación llevamos tiempo evitando?', en: 'What conversation have we been avoiding?' },
+    { es: 'Si nos vieras desde fuera, ¿qué consejo nos darías?', en: 'If you saw us from the outside, what advice would you give us?' },
+    { es: '¿Cómo quieres que nos cuidemos cuando seamos viejos?', en: 'How do you want us to take care of each other when we are old?' },
+    { es: '¿Qué perdón me debes? ¿Qué perdón te debo?', en: 'What apology do you owe me? What apology do I owe you?' },
+    { es: '¿Qué le dirías a la versión de ti que existía justo antes de conocerme?', en: 'What would you tell the version of you that existed right before meeting me?' },
+    { es: '¿Qué es lo más valiente que hemos hecho como pareja?', en: 'What is the bravest thing we have done as a couple?' },
+    { es: '¿Qué promesa quieres hacerme hoy, sin que sea una fecha especial?', en: 'What promise do you want to make me today, with no special occasion?' },
+    { es: 'Mírame 30 segundos en silencio. Luego dime qué viste.', en: 'Look at me in silence for 30 seconds. Then tell me what you saw.' },
+  ],
+  wild: [
+    { es: 'COMODÍN: Abracémonos hasta que uno de los dos se ría.', en: 'WILDCARD: Hug until one of us laughs.' },
+    { es: 'COMODÍN: Muéstrame la última foto de tu galería y cuéntame la historia real.', en: 'WILDCARD: Show me the last photo in your gallery and tell me the real story.' },
+    { es: 'COMODÍN: Dime tres cosas que te gustan de mí en menos de 10 segundos. Ya.', en: 'WILDCARD: Tell me three things you like about me in under 10 seconds. Go.' },
+    { es: 'COMODÍN: Escribe en mi mano, con el dedo, una palabra. Tengo que adivinarla.', en: 'WILDCARD: Trace one word on my hand with your finger. I have to guess it.' },
+    { es: 'COMODÍN: Ambos respondan a la vez: ¿playa o montaña para escaparnos mañana?', en: 'WILDCARD: Both answer at once: beach or mountains for a getaway tomorrow?' },
+    { es: 'COMODÍN: El que está leyendo elige: un beso o un secreto.', en: 'WILDCARD: Whoever is reading chooses: a kiss or a secret.' },
+  ],
+};
+
+const UI = {
+  es: {
+    brand: '¿Realmente somos extraños?',
+    introTitle: 'Un juego para\nconocerse de verdad.',
+    introSub: 'Para parejas. Pásense el teléfono, lean la carta en voz alta y respondan con honestidad. Sin apuro: una carta puede durar toda la noche.',
+    levels: {
+      1: { name: 'Nivel 1 · Percepción', desc: 'Lo que creemos saber del otro.' },
+      2: { name: 'Nivel 2 · Conexión', desc: 'Lo que somos cuando estamos juntos.' },
+      3: { name: 'Nivel 3 · Reflexión', desc: 'Lo que no decimos en voz alta.' },
+    },
+    fullRun: 'Jugar los 3 niveles →',
+    hudLevel: { 1: 'Percepción', 2: 'Conexión', 3: 'Reflexión', wild: 'Comodín' },
+    cardTagWild: 'Comodín',
+    cardHint: 'toca la carta o "siguiente" para continuar',
+    next: 'Siguiente carta',
+    quit: 'Salir',
+    card: 'carta',
+    of: 'de',
+    endTitle: 'Ya no son\ntan extraños.',
+    endSub: 'Se acabaron las cartas, no la conversación. Guarden una pregunta para la próxima cita.',
+    again: 'Jugar de nuevo',
+    footer: 'hecho con cariño · pásense el teléfono',
+  },
+  en: {
+    brand: 'Are we really strangers?',
+    introTitle: 'A game to truly\nknow each other.',
+    introSub: 'For couples. Pass the phone, read the card out loud, and answer honestly. No rush: one card can last all night.',
+    levels: {
+      1: { name: 'Level 1 · Perception', desc: 'What we think we know about each other.' },
+      2: { name: 'Level 2 · Connection', desc: 'Who we are when we are together.' },
+      3: { name: 'Level 3 · Reflection', desc: 'What we do not say out loud.' },
+    },
+    fullRun: 'Play all 3 levels →',
+    hudLevel: { 1: 'Perception', 2: 'Connection', 3: 'Reflection', wild: 'Wildcard' },
+    cardTagWild: 'Wildcard',
+    cardHint: 'tap the card or "next" to continue',
+    next: 'Next card',
+    quit: 'Exit',
+    card: 'card',
+    of: 'of',
+    endTitle: 'Not such\nstrangers anymore.',
+    endSub: 'The cards are done, the conversation is not. Save one question for your next date.',
+    again: 'Play again',
+    footer: 'made with love · pass the phone',
+  },
+};
+
+const LEVEL_COLORS = { 1: 'var(--lvl1)', 2: 'var(--lvl2)', 3: 'var(--lvl3)', wild: 'var(--wild)' };
+
+// localStorage throws in sandboxed frames (e.g. artifact/iframe embeds) — degrade to in-memory
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch { /* no persistence */ } },
+};
+
+let lang = store.get('awrs-lang') || 'es';
+let queue = [];   // [{level, es, en}]
+let index = 0;
+
+const $ = (id) => document.getElementById(id);
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildQueue(levels) {
+  const q = [];
+  const wilds = shuffle(DECK.wild);
+  levels.forEach((lvl, li) => {
+    const cards = shuffle(DECK[lvl]).map(c => ({ ...c, level: lvl }));
+    // slip one wildcard into the middle of each level
+    const wild = wilds[li % wilds.length];
+    cards.splice(Math.floor(cards.length / 2), 0, { ...wild, level: 'wild' });
+    q.push(...cards);
+  });
+  return q;
+}
+
+function show(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(screenId).classList.add('active');
+}
+
+function renderStatic() {
+  const t = UI[lang];
+  document.documentElement.lang = lang;
+  $('brand').textContent = t.brand;
+  $('langBtn').textContent = lang === 'es' ? 'EN' : 'ES';
+  $('introTitle').innerText = t.introTitle;
+  $('introSub').textContent = t.introSub;
+  $('fullRunBtn').textContent = t.fullRun;
+  $('quitBtn').textContent = t.quit;
+  $('nextBtn').textContent = t.next;
+  $('endTitle').innerText = t.endTitle;
+  $('endSub').textContent = t.endSub;
+  $('againBtn').textContent = t.again;
+  $('footer').textContent = t.footer;
+
+  const pick = $('levelPick');
+  pick.innerHTML = '';
+  [1, 2, 3].forEach(lvl => {
+    const b = document.createElement('button');
+    b.className = 'level-btn';
+    b.innerHTML = `<span class="level-dot" style="background:${LEVEL_COLORS[lvl]}"></span>
+      <span><span class="lb-name">${t.levels[lvl].name}</span><br><span class="lb-desc">${t.levels[lvl].desc}</span></span>`;
+    b.addEventListener('click', () => startGame([lvl]));
+    pick.appendChild(b);
+  });
+
+  if ($('gameScreen').classList.contains('active')) renderCard(false);
+}
+
+function startGame(levels) {
+  queue = buildQueue(levels);
+  index = 0;
+  show('gameScreen');
+  renderCard(true);
+}
+
+function renderCard(animate) {
+  const t = UI[lang];
+  const item = queue[index];
+  const card = $('card');
+  const isWild = item.level === 'wild';
+  card.style.borderTopColor = LEVEL_COLORS[item.level];
+  $('cardTag').textContent = isWild ? t.cardTagWild : t.hudLevel[item.level];
+  $('cardQ').textContent = item[lang];
+  $('cardHint').textContent = t.cardHint;
+  $('hudLevel').textContent = isWild ? t.hudLevel.wild : t.hudLevel[item.level];
+  $('hudCount').textContent = `${t.card} ${index + 1} ${t.of} ${queue.length}`;
+  $('progressFill').style.width = `${((index + 1) / queue.length) * 100}%`;
+  if (animate) {
+    card.classList.remove('leaving');
+    card.style.animation = 'none';
+    void card.offsetWidth; // restart the deal animation
+    card.style.animation = '';
+  }
+}
+
+function nextCard() {
+  if (index >= queue.length - 1) {
+    show('endScreen');
+    return;
+  }
+  const card = $('card');
+  card.classList.add('leaving');
+  setTimeout(() => {
+    card.classList.remove('leaving');
+    index++;
+    renderCard(true);
+  }, 280);
+}
+
+$('langBtn').addEventListener('click', () => {
+  lang = lang === 'es' ? 'en' : 'es';
+  store.set('awrs-lang', lang);
+  renderStatic();
+});
+$('fullRunBtn').addEventListener('click', () => startGame([1, 2, 3]));
+$('card').addEventListener('click', nextCard);
+$('nextBtn').addEventListener('click', nextCard);
+$('quitBtn').addEventListener('click', () => show('introScreen'));
+$('againBtn').addEventListener('click', () => show('introScreen'));
+
+renderStatic();
+</script>
+</body>
+</html>
